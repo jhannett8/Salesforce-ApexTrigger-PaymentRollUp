@@ -1,0 +1,30 @@
+trigger PaymentCCRollupSummary on fw1__Payment__c (after update, after delete, after insert) {
+    for (fw1__Payment__c payment: trigger.new){
+        
+        //Variables
+        decimal TotalPaidAmount = 0;
+        Id conId = payment.fw1__Contact__c;
+        
+        //Payment list: get total payments related to contact
+        list<fw1__Payment__c> paymentList = new list<fw1__Payment__c>(); 
+        paymentList = [select ID, Total_Balance_Due__c,fw1__Total_Captured_Amount__c,fw1__Total_Paid_Amount__c,fw1__Total_Refunded_Amount__c, fw1__Contact__c from fw1__Payment__c where fw1__Contact__c =: conId];
+        if (paymentList.size() > 0){
+            for (fw1__Payment__c p : paymentList){
+                TotalPaidAmount += p.fw1__Total_Paid_Amount__c;
+            }
+        }
+        
+        System.debug('Total Paid CC Amount: '+ TotalPaidAmount);
+        
+        //Contact list: update contact with total payments made
+        list<contact> contactList = new list<contact>();
+        contactlist = [select ID, Name from Contact where id =: conId];
+        if(contactList.size() > 0){
+            for (Contact c: contactList){
+                c.Total_CC_Payments__c = TotalPaidAmount;
+                update c;
+                System.debug('c.Total_CC_Payments__c: '+ c.Total_CC_Payments__c);
+            }
+        }
+    }
+}
